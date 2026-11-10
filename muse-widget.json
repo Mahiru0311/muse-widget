@@ -1,1 +1,1 @@
-{"note":{"body":"本周额度已用完，今天 9:25 重置。","title":"Muse"},"updated_at":"2026-11-11T04:20:49+08:00","usage":{"additional_tokens_left":"5.7B","additional_tokens_percent_used":4,"weekly_percent_remaining":0,"weekly_percent_used":100,"weekly_reset_at":"2026-11-11T09:25:00+08:00"},"version":1}
+{"version":1,"usage":{"weekly_percent_used":100,"weekly_percent_remaining":0,"weekly_reset_at":"2026-11-11T09:25:00+08:00","additional_tokens_percent_used":4,"additional_tokens_left":"5.7B"},"note":{"title":"Muse","body":"本周额度已用完，今天 9:25 重置。"},"updated_at":"2026-11-11T04:35:52+08:00"}
