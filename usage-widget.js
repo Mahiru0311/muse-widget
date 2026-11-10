@@ -1,6 +1,6 @@
-// Muse 用量小组件 v5 — Scriptable
-// v5 改动：深色模式改用 Color.dynamic（Device.isUsingDarkAppearance 在小组件里不支持，
-// 所以 v4 一直是白底）；排版回到 v3 的均衡版，顶部留白 10，不用弹性空白撑底部。
+// Muse 用量小组件 v6 — Scriptable
+// v6 改动：只动底部两行（已用 / 重置），往下移 4pt：底部留白 12→8，上面间距 8→12。
+// 其他不动：深色用 Color.dynamic，顶部留白 10。
 // 左上角：蓝色波浪（透明底）+ Muse。
 // 数据：https://raw.githubusercontent.com/Mahiru0311/muse-widget/main/muse-widget.json
 // 图标：https://raw.githubusercontent.com/Mahiru0311/muse-widget/main/muse-wave.png
@@ -67,8 +67,8 @@ function fmtReset(iso) {
 async function createWidget() {
   const widget = new ListWidget()
   widget.backgroundColor = BG
-  // 顶部 10：v3 是 12 嫌低，v4 改 6 又太贴顶，取中间
-  widget.setPadding(10, 14, 12, 14)
+  // 顶部 10，底部 8：底部两行往下移 4pt
+  widget.setPadding(10, 14, 8, 14)
   widget.url = "https://github.com/Mahiru0311/muse-widget"
   const isMedium = config.widgetFamily === "medium"
 
@@ -125,7 +125,7 @@ async function createWidget() {
       extra.textColor = GREY
     }
 
-    widget.addSpacer(8)
+    widget.addSpacer(12)
 
     const usedText = widget.addText("已用 " + used + "%")
     usedText.font = Font.systemFont(12)
