@@ -5,12 +5,12 @@
     "weekly_percent_remaining": 0,
     "weekly_reset_at": "2026-11-11T09:25:00+08:00",
     "additional_tokens_percent_used": 3,
-    "additional_tokens_left": "5.8B"
+    "additional_tokens_left": "5.7B"
   },
   "note": {
     "title": "Muse",
     "body": "本周额度已用完，明天 9:25 重置。",
-    "updated_at": "2026-11-10T15:20:55+08:00"
+    "updated_at": "2026-11-10T15:35:50+08:00"
   },
-  "updated_at": "2026-11-10T15:20:55+08:00"
+  "updated_at": "2026-11-10T15:35:50+08:00"
 }
