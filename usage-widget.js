@@ -1,7 +1,7 @@
-// Muse 用量小组件 v7 — Scriptable
-// v7 改动：只改点按行为。原来 widget.url 是 GitHub 仓库，点开会去仓库页面；
-// 现在改成 https://muse.ai，点小组件就打开 Muse（App 已装的话走通用链接打开 App，
-// 没走通就打开 Muse 网页版，同一个聊天）。其他排版、深色都不动。
+// Muse 用量小组件 v8 — Scriptable
+// v8 改动：只改点按行为。v7 的 https://muse.ai 实测只打开了 Safari 网页版，
+// 没走到 App。所以改成 Muse 的 App 直连 scheme hatch://（Muse 文档里用的
+// 就是 hatch://search 这类深链，App 应已注册 hatch://）。其他排版、深色都不动。
 // 注意：Scriptable 文档说 widget.url 会覆盖小组件配置里的点按行为，
 // 所以 When Interacting 保持 Open App 就行，不用改。
 // 左上角：蓝色波浪（透明底）+ Muse。
@@ -72,7 +72,7 @@ async function createWidget() {
   widget.backgroundColor = BG
   // 顶部 10，底部 8：底部两行往下移 4pt
   widget.setPadding(10, 14, 8, 14)
-  widget.url = "https://muse.ai"
+  widget.url = "hatch://"
   const isMedium = config.widgetFamily === "medium"
 
   try {
