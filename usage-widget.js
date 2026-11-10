@@ -1,6 +1,9 @@
-// Muse 用量小组件 v6 — Scriptable
-// v6 改动：只动底部两行（已用 / 重置），往下移 4pt：底部留白 12→8，上面间距 8→12。
-// 其他不动：深色用 Color.dynamic，顶部留白 10。
+// Muse 用量小组件 v7 — Scriptable
+// v7 改动：只改点按行为。原来 widget.url 是 GitHub 仓库，点开会去仓库页面；
+// 现在改成 https://muse.ai，点小组件就打开 Muse（App 已装的话走通用链接打开 App，
+// 没走通就打开 Muse 网页版，同一个聊天）。其他排版、深色都不动。
+// 注意：Scriptable 文档说 widget.url 会覆盖小组件配置里的点按行为，
+// 所以 When Interacting 保持 Open App 就行，不用改。
 // 左上角：蓝色波浪（透明底）+ Muse。
 // 数据：https://raw.githubusercontent.com/Mahiru0311/muse-widget/main/muse-widget.json
 // 图标：https://raw.githubusercontent.com/Mahiru0311/muse-widget/main/muse-wave.png
@@ -69,7 +72,7 @@ async function createWidget() {
   widget.backgroundColor = BG
   // 顶部 10，底部 8：底部两行往下移 4pt
   widget.setPadding(10, 14, 8, 14)
-  widget.url = "https://github.com/Mahiru0311/muse-widget"
+  widget.url = "https://muse.ai"
   const isMedium = config.widgetFamily === "medium"
 
   try {
