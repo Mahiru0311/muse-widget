@@ -1,4 +1,7 @@
-// Muse 用量小组件 v11 — Scriptable
+// Muse 用量小组件 v12 — Scriptable
+// v12 改动：每次拉到新数据都存一份到手机本地（muse-widget-cache.json），
+// 给锁屏小组件用：锁屏给脚本的时间很短，网络一慢就超时报错，
+// 锁屏版会先读这份缓存，网络通了再更新。桌面版显示本身不变。
 // v11 改动：只把图标换回来。用户说 Muse 波浪不用换：顶部恢复蓝色波浪 + Muse，
 // 保留 v10 的布局：下面一行小字「每周额度」，再下面大字「剩余 XX%」
 // （XX 是真实剩余百分比，现在是 99%）。下面不动：进度条、已用、重置都保持原样。
@@ -29,7 +32,13 @@ const BLUE = new Color("#0A84FF")
 async function loadData() {
   const req = new Request(DATA_URL + "?t=" + Date.now())
   req.headers = { "Cache-Control": "no-cache" }
-  return await req.loadJSON()
+  req.timeoutInterval = 10
+  const data = await req.loadJSON()
+  try {
+    const fm = FileManager.local()
+    fm.writeString(fm.joinPath(fm.documentsDirectory(), "muse-widget-cache.json"), JSON.stringify(data))
+  } catch (e) {}
+  return data
 }
 
 async function loadIcon() {
