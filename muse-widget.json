@@ -1,15 +1,15 @@
 {
   "version": 1,
   "usage": {
-    "weekly_percent_used": 0,
-    "weekly_percent_remaining": 100,
+    "weekly_percent_used": 1,
+    "weekly_percent_remaining": 99,
     "weekly_reset_at": "2026-11-18T09:27:00+08:00",
     "additional_tokens_percent_used": 4,
     "additional_tokens_left": "5.7B"
   },
   "note": {
     "title": "Muse",
-    "body": "本周额度已重置，下周三 9:27 重置。"
+    "body": "本周已用 1%，下周三 9:27 重置。"
   },
-  "updated_at": "2026-11-11T09:29:00+08:00"
+  "updated_at": "2026-11-11T09:35:50+08:00"
 }
