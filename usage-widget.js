@@ -9,7 +9,7 @@
 // 就是 hatch://search 这类深链，App 应已注册 hatch://）。其他排版、深色都不动。
 // 注意：Scriptable 文档说 widget.url 会覆盖小组件配置里的点按行为，
 // 所以 When Interacting 保持 Open App 就行，不用改。
-// 左上角：蓝色波浪（透明底）+ Muse。
+// 左上角：紫色星星 ✦ + Muse（v10 起，不再用蓝色波浪）。
 // 数据：https://raw.githubusercontent.com/Mahiru0311/muse-widget/main/muse-widget.json
 // 图标：https://raw.githubusercontent.com/Mahiru0311/muse-widget/main/muse-wave.png
 // 只做 Muse，不含 Codex / Claude。用 loader 的话，推到仓库后自动生效，不用重贴。
