@@ -106,25 +106,22 @@ function buildWidget(data) {
     text.font = Font.systemFont(14)
     text.textColor = WHITE
   } else {
+    // 长方形：上行是小圆环 + 大百分比，下行是一行小字。
+    // 锁屏上这个格子只有半屏宽（约 170pt），之前左右并排三行字
+    // 会被截成「8...」「Muse · W...」，所以圆环改小、字改小、改两行。
     widget.setPadding(8, 12, 8, 12)
     const row = widget.addStack()
     row.centerAlignContent()
-    row.spacing = 12
-    const ringImg = drawRing(remaining, 56)
+    row.spacing = 8
+    const ringImg = drawRing(remaining, 36)
     const ring = row.addImage(ringImg)
-    ring.imageSize = new Size(56, 56)
-    const col = row.addStack()
-    col.layoutVertically()
-    col.spacing = 1
-    const title = col.addText("Muse · Weekly")
-    title.font = Font.systemFont(12)
-    title.textColor = DIM
-    const big = col.addText(hasData ? remaining + "% left" : "点 ▶ 更新")
-    big.font = Font.boldSystemFont(24)
+    ring.imageSize = new Size(36, 36)
+    const big = row.addText(hasData ? remaining + "% left" : "点 ▶ 更新")
+    big.font = Font.boldSystemFont(20)
     big.textColor = WHITE
-    const reset = col.addText(hasData ? "Resets in " + days + "天" : "先在 App 里点 ▶")
-    reset.font = Font.systemFont(11)
-    reset.textColor = DIM
+    const sub = widget.addText(hasData ? "Muse · Weekly · " + days + "天后重置" : "先在 App 里点 ▶")
+    sub.font = Font.systemFont(10)
+    sub.textColor = DIM
   }
 
   widget.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000)
