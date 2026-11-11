@@ -1,7 +1,9 @@
-// Muse 用量小组件 v9 — Scriptable
-// v9 改动：只加防缓存。2026-11-11 重置后手机小组件 09:34 仍显示旧的 0%，
-// 服务器 raw 已是新数据，怀疑是 GitHub raw / iOS 把 JSON 缓存住了。
-// 现在每次拉数据都带 ?t=时间戳，强制走新数据，不走缓存。
+// Muse 用量小组件 v10 — Scriptable
+// v10 改动：只改上半部分，按用户给的截图（X 帖子里的 Muse 小组件）改：
+// 顶部改成紫色星星 ✦ + Muse；下面一行小字「每周额度」；再下面大字「剩余 XX%」
+// （XX 是真实剩余百分比，现在是 99%，刚重置那会儿是 100%）。
+// 下面不动：进度条、已用、重置都保持原样。
+// v9 改动：防缓存，每次拉数据都带 ?t=时间戳，强制走新数据。
 // v8 改动：只改点按行为。v7 的 https://muse.ai 实测只打开了 Safari 网页版，
 // 没走到 App。所以改成 Muse 的 App 直连 scheme hatch://（Muse 文档里用的
 // 就是 hatch://search 这类深链，App 应已注册 hatch://）。其他排版、深色都不动。
@@ -84,36 +86,30 @@ async function createWidget() {
     const remaining = usage.weekly_percent_remaining ?? 0
     const used = usage.weekly_percent_used ?? 100
 
-    // 顶部：波浪 + Muse，贴顶，不再留大空白
+    // 顶部：紫色星星 + Muse（按截图样式，不再用蓝色波浪）
     const header = widget.addStack()
     header.topAlignContent()
     header.spacing = 6
-    const icon = await loadIcon()
-    if (icon) {
-      const img = header.addImage(icon)
-      img.imageSize = new Size(34, 23)
-      img.cornerRadius = 0
-    }
+    const star = header.addText("✦")
+    star.font = Font.boldSystemFont(16)
+    star.textColor = new Color("#A855F7")
     const title = header.addText("Muse")
     title.font = Font.boldSystemFont(15)
     title.textColor = TEXT
-    header.addSpacer()
-    const tag = header.addText("每周")
-    tag.font = Font.systemFont(11)
-    tag.textColor = GREY
 
-    widget.addSpacer(6)
+    widget.addSpacer(4)
 
-    // 大数字
-    const bigRow = widget.addStack()
-    bigRow.bottomAlignContent()
-    bigRow.spacing = 4
-    const big = bigRow.addText(remaining + "%")
-    big.font = Font.boldSystemFont(32)
+    // 小字：每周额度
+    const quotaLabel = widget.addText("每周额度")
+    quotaLabel.font = Font.systemFont(13)
+    quotaLabel.textColor = SUB
+
+    widget.addSpacer(2)
+
+    // 大数字：剩余 XX%（XX 是真实剩余百分比）
+    const big = widget.addText("剩余 " + remaining + "%")
+    big.font = Font.boldSystemFont(28)
     big.textColor = TEXT
-    const label = bigRow.addText("剩余")
-    label.font = Font.systemFont(14)
-    label.textColor = SUB
 
     widget.addSpacer(6)
 
