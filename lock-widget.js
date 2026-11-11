@@ -1,4 +1,9 @@
-// Muse 锁屏小组件 v1 — Scriptable
+// Muse 锁屏小组件 v2 — Scriptable
+// v2 改动：修锁屏上「Received timeout when running script」。
+// 原因：锁屏小组件给脚本的时间很短，Request 默认超时是 60 秒，
+// 网络一慢就超过小组件时限直接报错。改法：请求只等 8 秒，
+// 超时/失败就读本地缓存（桌面版每次拉到新数据都会存一份到手机本地），
+// 没缓存才显示 —。成功拉到就更新缓存。
 // 锁屏版，和桌面版分开的脚本：桌面版是 usage-widget.js（小/中尺寸），
 // 这个只做锁屏，尺寸完全不同，锁屏只有三种：圆形、长方形、一行。
 // 样式按用户给的图片（右边那块）：圆环 + Muse · Weekly + XX% left + Resets in X天。
@@ -11,10 +16,39 @@
 
 const DATA_URL = "https://raw.githubusercontent.com/Mahiru0311/muse-widget/main/muse-widget.json"
 
+const CACHE_FILE = "muse-widget-cache.json"
+
+function readCache() {
+  try {
+    const fm = FileManager.local()
+    const path = fm.joinPath(fm.documentsDirectory(), CACHE_FILE)
+    if (!fm.fileExists(path)) return null
+    return JSON.parse(fm.readString(path))
+  } catch (e) {
+    return null
+  }
+}
+
+function saveCache(data) {
+  try {
+    const fm = FileManager.local()
+    const path = fm.joinPath(fm.documentsDirectory(), CACHE_FILE)
+    fm.writeString(path, JSON.stringify(data))
+  } catch (e) {}
+}
+
 async function loadData() {
-  const req = new Request(DATA_URL + "?t=" + Date.now())
-  req.headers = { "Cache-Control": "no-cache" }
-  return await req.loadJSON()
+  try {
+    const req = new Request(DATA_URL + "?t=" + Date.now())
+    req.headers = { "Cache-Control": "no-cache" }
+    req.timeoutInterval = 8
+    const data = await req.loadJSON()
+    saveCache(data)
+    return data
+  } catch (e) {
+    // 网络超时/失败：用本地缓存，别让小组件直接报错
+    return readCache()
+  }
 }
 
 function daysToReset(iso) {
@@ -63,7 +97,7 @@ async function createWidget() {
   let remaining = 0
   let days = "—"
   try {
-    const data = await loadData()
+    const data = await loadData() || {}
     const usage = data.usage || {}
     remaining = usage.weekly_percent_remaining ?? 0
     days = daysToReset(usage.weekly_reset_at)
@@ -71,6 +105,8 @@ async function createWidget() {
     remaining = 0
     days = "—"
   }
+  // 告诉 iOS 15 分钟后再刷新一次
+  widget.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000)
 
   const WHITE = new Color("#FFFFFF")
   const DIM = new Color("#FFFFFF", 0.7)
