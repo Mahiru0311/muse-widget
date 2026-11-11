@@ -1,4 +1,7 @@
-// Muse 用量小组件 v8 — Scriptable
+// Muse 用量小组件 v9 — Scriptable
+// v9 改动：只加防缓存。2026-11-11 重置后手机小组件 09:34 仍显示旧的 0%，
+// 服务器 raw 已是新数据，怀疑是 GitHub raw / iOS 把 JSON 缓存住了。
+// 现在每次拉数据都带 ?t=时间戳，强制走新数据，不走缓存。
 // v8 改动：只改点按行为。v7 的 https://muse.ai 实测只打开了 Safari 网页版，
 // 没走到 App。所以改成 Muse 的 App 直连 scheme hatch://（Muse 文档里用的
 // 就是 hatch://search 这类深链，App 应已注册 hatch://）。其他排版、深色都不动。
@@ -23,7 +26,7 @@ const TRACK = new Color("#C7C7CC")
 const BLUE = new Color("#0A84FF")
 
 async function loadData() {
-  const req = new Request(DATA_URL)
+  const req = new Request(DATA_URL + "?t=" + Date.now())
   req.headers = { "Cache-Control": "no-cache" }
   return await req.loadJSON()
 }
