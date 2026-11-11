@@ -1,27 +1,25 @@
-// Muse 锁屏小组件 v2 — Scriptable
-// v2 改动：修锁屏上「Received timeout when running script」。
-// 原因：锁屏小组件给脚本的时间很短，Request 默认超时是 60 秒，
-// 网络一慢就超过小组件时限直接报错。改法：请求只等 8 秒，
-// 超时/失败就读本地缓存（桌面版每次拉到新数据都会存一份到手机本地），
-// 没缓存才显示 —。成功拉到就更新缓存。
-// 锁屏版，和桌面版分开的脚本：桌面版是 usage-widget.js（小/中尺寸），
-// 这个只做锁屏，尺寸完全不同，锁屏只有三种：圆形、长方形、一行。
-// 样式按用户给的图片（右边那块）：圆环 + Muse · Weekly + XX% left + Resets in X天。
-// 数据和桌面版同一份：https://raw.githubusercontent.com/Mahiru0311/muse-widget/main/muse-widget.json
-// 每次拉数据都带 ?t=时间戳，防缓存。
-// 锁屏小组件颜色是系统染色的，所以这里只用白色，iOS 会按壁纸给你染成合适的颜色。
-// 用法：Scriptable 里新建一个脚本（建议叫 muse-lock），把本文件全部内容粘贴进去，
-// 点 ▶ 看预览；然后长按锁屏 → 自定 → 添加小组件 → 选 Scriptable → 选长方形/圆形/一行，
-// Script 选 muse-lock 即可。桌面版不用动。
+// Muse 锁屏小组件 v3 — Scriptable
+// v3 改动：锁屏上还是超时，说明问题不在超时设多长，
+// 而是锁屏给脚本的时间实在太短，任何网络请求都可能超。
+// 改法：锁屏运行时完全不联网，只读本地缓存，秒出结果。
+// 缓存由两种方式更新：
+//   1) 桌面版小组件（usage-widget.js v12）每次刷新都会存一份；
+//   2) 在 Scriptable 里点这个脚本的 ▶（在 App 里跑，时间宽裕），会联网拉新数据并存缓存。
+// 所以装好后先在 App 里点一次 ▶，再把锁屏小组件删了重加一次，
+// 让 iOS 跑新版脚本。之后桌面版每 15 分钟刷新一次，缓存就一直是新的。
 
 const DATA_URL = "https://raw.githubusercontent.com/Mahiru0311/muse-widget/main/muse-widget.json"
-
 const CACHE_FILE = "muse-widget-cache.json"
+
+function cachePath() {
+  const fm = FileManager.local()
+  return fm.joinPath(fm.documentsDirectory(), CACHE_FILE)
+}
 
 function readCache() {
   try {
     const fm = FileManager.local()
-    const path = fm.joinPath(fm.documentsDirectory(), CACHE_FILE)
+    const path = cachePath()
     if (!fm.fileExists(path)) return null
     return JSON.parse(fm.readString(path))
   } catch (e) {
@@ -31,24 +29,17 @@ function readCache() {
 
 function saveCache(data) {
   try {
-    const fm = FileManager.local()
-    const path = fm.joinPath(fm.documentsDirectory(), CACHE_FILE)
-    fm.writeString(path, JSON.stringify(data))
+    FileManager.local().writeString(cachePath(), JSON.stringify(data))
   } catch (e) {}
 }
 
-async function loadData() {
-  try {
-    const req = new Request(DATA_URL + "?t=" + Date.now())
-    req.headers = { "Cache-Control": "no-cache" }
-    req.timeoutInterval = 8
-    const data = await req.loadJSON()
-    saveCache(data)
-    return data
-  } catch (e) {
-    // 网络超时/失败：用本地缓存，别让小组件直接报错
-    return readCache()
-  }
+async function fetchAndSave() {
+  const req = new Request(DATA_URL + "?t=" + Date.now())
+  req.headers = { "Cache-Control": "no-cache" }
+  req.timeoutInterval = 10
+  const data = await req.loadJSON()
+  saveCache(data)
+  return data
 }
 
 function daysToReset(iso) {
@@ -66,13 +57,11 @@ function drawRing(remaining, size) {
   const center = new Point(size / 2, size / 2)
   const radius = size / 2 - 4
   ctx.setLineWidth(5)
-  // 底圈
   ctx.setStrokeColor(new Color("#FFFFFF", 0.3))
   const track = new Path()
   track.addEllipse(new Rect(4, 4, size - 8, size - 8))
   ctx.addPath(track)
   ctx.strokePath()
-  // 进度弧：从顶部开始，顺时针
   if (remaining > 0) {
     ctx.setStrokeColor(new Color("#FFFFFF"))
     const arc = new Path()
@@ -85,36 +74,25 @@ function drawRing(remaining, size) {
   return ctx.getImage()
 }
 
-async function createWidget() {
+function buildWidget(data) {
   const widget = new ListWidget()
   widget.url = "hatch://"
   const family = config.widgetFamily
-  const isAccessory = config.runsInAccessoryWidget
-  if (isAccessory) {
+  if (config.runsInAccessoryWidget) {
     widget.addAccessoryWidgetBackground = true
   }
 
-  let remaining = 0
-  let days = "—"
-  try {
-    const data = await loadData() || {}
-    const usage = data.usage || {}
-    remaining = usage.weekly_percent_remaining ?? 0
-    days = daysToReset(usage.weekly_reset_at)
-  } catch (e) {
-    remaining = 0
-    days = "—"
-  }
-  // 告诉 iOS 15 分钟后再刷新一次
-  widget.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000)
+  const usage = (data && data.usage) || {}
+  const remaining = usage.weekly_percent_remaining ?? 0
+  const days = daysToReset(usage.weekly_reset_at)
+  const hasData = !!(data && data.usage)
 
   const WHITE = new Color("#FFFFFF")
   const DIM = new Color("#FFFFFF", 0.7)
 
   if (family === "accessoryCircular") {
-    // 圆形：只放一个大百分比（圆环叠字在 Scriptable 里排不准，圆形就用最简单的）
     widget.setPadding(0, 0, 0, 0)
-    const pct = widget.addText(remaining + "%")
+    const pct = widget.addText(hasData ? remaining + "%" : "—")
     pct.font = Font.boldSystemFont(20)
     pct.textColor = WHITE
     pct.centerAlignText()
@@ -123,13 +101,11 @@ async function createWidget() {
     label.textColor = DIM
     label.centerAlignText()
   } else if (family === "accessoryInline") {
-    // 一行：Muse 剩余 86% · 6天后重置
     widget.setPadding(0, 0, 0, 0)
-    const text = widget.addText("Muse 剩余 " + remaining + "% · " + days + "天后重置")
+    const text = widget.addText(hasData ? "Muse 剩余 " + remaining + "% · " + days + "天后重置" : "Muse · 点 ▶ 更新")
     text.font = Font.systemFont(14)
     text.textColor = WHITE
   } else {
-    // 长方形（默认，也是图片里那个样式）：左圆环，右三行字
     widget.setPadding(8, 12, 8, 12)
     const row = widget.addStack()
     row.centerAlignContent()
@@ -143,21 +119,33 @@ async function createWidget() {
     const title = col.addText("Muse · Weekly")
     title.font = Font.systemFont(12)
     title.textColor = DIM
-    const big = col.addText(remaining + "% left")
+    const big = col.addText(hasData ? remaining + "% left" : "点 ▶ 更新")
     big.font = Font.boldSystemFont(24)
     big.textColor = WHITE
-    const reset = col.addText("Resets in " + days + "天")
+    const reset = col.addText(hasData ? "Resets in " + days + "天" : "先在 App 里点 ▶")
     reset.font = Font.systemFont(11)
     reset.textColor = DIM
   }
 
+  widget.refreshAfterDate = new Date(Date.now() + 15 * 60 * 1000)
   return widget
 }
 
 async function main() {
-  const widget = await createWidget()
+  let data = null
   if (config.runsInApp) {
-    // 在 Scriptable 里点 ▶ 时看长方形预览
+    // 在 App 里点 ▶：时间宽裕，联网拉新数据并存缓存，再看预览
+    try {
+      data = await fetchAndSave()
+    } catch (e) {
+      data = readCache()
+    }
+  } else {
+    // 在锁屏/桌面小组件里：不联网，只读缓存，秒出
+    data = readCache()
+  }
+  const widget = buildWidget(data)
+  if (config.runsInApp) {
     widget.presentAccessoryRectangular()
   }
   Script.setWidget(widget)
