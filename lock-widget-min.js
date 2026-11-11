@@ -71,22 +71,21 @@ async function main() {
     text.font = Font.systemFont(14)
     text.textColor = WHITE
   } else {
-    // 长方形：左大百分比，右两行小字，没有任何画图
-    widget.setPadding(8, 14, 8, 14)
-    const row = widget.addStack()
-    row.centerAlignContent()
-    row.spacing = 10
-    const big = row.addText(hasData ? remaining + "%" : "—")
-    big.font = Font.boldSystemFont(30)
-    big.textColor = WHITE
-    const col = row.addStack()
+    // 长方形：竖着排三行。锁屏上这个格子只有半屏宽（约 170pt），
+    // 左右并排根本放不下，之前就是这么被截成「8...」「Muse · W...」的。
+    // 竖排每行都够宽，不会再被截。
+    widget.setPadding(8, 12, 8, 12)
+    const col = widget.addStack()
     col.layoutVertically()
-    col.spacing = 2
+    col.spacing = 1
     const title = col.addText("Muse · Weekly")
-    title.font = Font.systemFont(12)
+    title.font = Font.systemFont(11)
     title.textColor = DIM
+    const big = col.addText(hasData ? remaining + "% left" : "点 ▶ 更新")
+    big.font = Font.boldSystemFont(22)
+    big.textColor = WHITE
     const reset = col.addText(hasData ? "Resets in " + days + "天" : "先在 App 里点 ▶")
-    reset.font = Font.systemFont(11)
+    reset.font = Font.systemFont(10)
     reset.textColor = DIM
   }
 
