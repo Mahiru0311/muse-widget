@@ -1,15 +1,14 @@
-// Muse 用量小组件 v10 — Scriptable
-// v10 改动：只改上半部分，按用户给的截图（X 帖子里的 Muse 小组件）改：
-// 顶部改成紫色星星 ✦ + Muse；下面一行小字「每周额度」；再下面大字「剩余 XX%」
-// （XX 是真实剩余百分比，现在是 99%，刚重置那会儿是 100%）。
-// 下面不动：进度条、已用、重置都保持原样。
+// Muse 用量小组件 v11 — Scriptable
+// v11 改动：只把图标换回来。用户说 Muse 波浪不用换：顶部恢复蓝色波浪 + Muse，
+// 保留 v10 的布局：下面一行小字「每周额度」，再下面大字「剩余 XX%」
+// （XX 是真实剩余百分比，现在是 99%）。下面不动：进度条、已用、重置都保持原样。
 // v9 改动：防缓存，每次拉数据都带 ?t=时间戳，强制走新数据。
 // v8 改动：只改点按行为。v7 的 https://muse.ai 实测只打开了 Safari 网页版，
 // 没走到 App。所以改成 Muse 的 App 直连 scheme hatch://（Muse 文档里用的
 // 就是 hatch://search 这类深链，App 应已注册 hatch://）。其他排版、深色都不动。
 // 注意：Scriptable 文档说 widget.url 会覆盖小组件配置里的点按行为，
 // 所以 When Interacting 保持 Open App 就行，不用改。
-// 左上角：紫色星星 ✦ + Muse（v10 起，不再用蓝色波浪）。
+// 左上角：蓝色波浪（透明底）+ Muse（v11 换回来了，v10 的紫色星星只用了一版）。
 // 数据：https://raw.githubusercontent.com/Mahiru0311/muse-widget/main/muse-widget.json
 // 图标：https://raw.githubusercontent.com/Mahiru0311/muse-widget/main/muse-wave.png
 // 只做 Muse，不含 Codex / Claude。用 loader 的话，推到仓库后自动生效，不用重贴。
@@ -86,13 +85,16 @@ async function createWidget() {
     const remaining = usage.weekly_percent_remaining ?? 0
     const used = usage.weekly_percent_used ?? 100
 
-    // 顶部：紫色星星 + Muse（按截图样式，不再用蓝色波浪）
+    // 顶部：蓝色波浪 + Muse（v11 换回来了）
     const header = widget.addStack()
     header.topAlignContent()
     header.spacing = 6
-    const star = header.addText("✦")
-    star.font = Font.boldSystemFont(16)
-    star.textColor = new Color("#A855F7")
+    const icon = await loadIcon()
+    if (icon) {
+      const img = header.addImage(icon)
+      img.imageSize = new Size(34, 23)
+      img.cornerRadius = 0
+    }
     const title = header.addText("Muse")
     title.font = Font.boldSystemFont(15)
     title.textColor = TEXT
