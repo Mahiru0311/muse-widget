@@ -1,4 +1,8 @@
-// Muse 用量小组件 v15 — Scriptable
+// Muse 用量小组件 v16 — Scriptable
+// v16 改动：只调位置，不改样子。v15 的内容算下来有 175pt 高，
+// 横屏卡片只有约 165pt，底下「已用」「重置」两行被挤到卡片边上、
+// 看着像要出去。改法：行间距收紧（12→6、6→4），上下改成弹性留白，
+// 内容在卡片里上下居中，底下不再贴边。行还是原来那几行，一个没少。
 // v15 改动：横屏版改回原来的样子。v13/v14 的圆环 + 三格小数据版位置没把控好
 // （每周额度飘到最右边、底部三格间距不匀），用户说别乱改了，按原来的来。
 // 所以横屏版恢复 v12 的竖排：波浪 + Muse、每周额度、大字剩余%、进度条、
@@ -103,7 +107,10 @@ function fmtReset(iso) {
 function buildLayout(widget, usage, icon, barWidth, barDisplayWidth, showExtra) {
   const remaining = usage.weekly_percent_remaining ?? 0
   const used = usage.weekly_percent_used ?? 100
-  widget.setPadding(10, 14, 8, 14)
+  widget.setPadding(8, 14, 8, 14)
+
+  // 上下弹性留白：内容在卡片里上下居中，不再贴着底边
+  widget.addSpacer()
 
   const header = widget.addStack()
   header.topAlignContent()
@@ -117,7 +124,7 @@ function buildLayout(widget, usage, icon, barWidth, barDisplayWidth, showExtra) 
   title.font = Font.boldSystemFont(15)
   title.textColor = TEXT
 
-  widget.addSpacer(4)
+  widget.addSpacer(2)
 
   const quotaLabel = widget.addText("每周额度")
   quotaLabel.font = Font.systemFont(13)
@@ -129,7 +136,7 @@ function buildLayout(widget, usage, icon, barWidth, barDisplayWidth, showExtra) 
   big.font = Font.boldSystemFont(28)
   big.textColor = TEXT
 
-  widget.addSpacer(6)
+  widget.addSpacer(4)
 
   const barImg = drawBar(remaining, barWidth)
   const bar = widget.addImage(barImg)
@@ -137,13 +144,14 @@ function buildLayout(widget, usage, icon, barWidth, barDisplayWidth, showExtra) 
   bar.cornerRadius = 3.5
 
   if (showExtra) {
-    widget.addSpacer(6)
+    widget.addSpacer(4)
     const extra = widget.addText("额外 tokens 已用 " + (usage.additional_tokens_percent_used ?? "—") + "% · 剩 " + (usage.additional_tokens_left ?? "—"))
     extra.font = Font.systemFont(12)
     extra.textColor = GREY
+    widget.addSpacer(6)
+  } else {
+    widget.addSpacer(8)
   }
-
-  widget.addSpacer(12)
 
   const usedText = widget.addText("已用 " + used + "%")
   usedText.font = Font.systemFont(12)
@@ -152,6 +160,8 @@ function buildLayout(widget, usage, icon, barWidth, barDisplayWidth, showExtra) 
   const resetText = widget.addText("重置 " + fmtReset(usage.weekly_reset_at))
   resetText.font = Font.systemFont(12)
   resetText.textColor = SUB
+
+  widget.addSpacer()
 }
 
 function errorWidget() {
