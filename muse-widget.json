@@ -1,9 +1,5 @@
 {
-  "note": {
-    "title": "Muse",
-    "body": "本周已用 38%，下周三 9:27 重置。"
-  },
-  "updated_at": "2026-11-13T23:45:30+08:00",
+  "version": 1,
   "usage": {
     "weekly_percent_used": 38,
     "weekly_percent_remaining": 62,
@@ -11,5 +7,9 @@
     "additional_tokens_percent_used": 4,
     "additional_tokens_left": "6.7B"
   },
-  "version": 1
+  "note": {
+    "title": "Muse",
+    "body": "本周已用 38%，下周三 9:27 重置。"
+  },
+  "updated_at": "2026-11-14T00:00:36+08:00"
 }
