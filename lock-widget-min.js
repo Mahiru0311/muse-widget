@@ -42,11 +42,18 @@ function drawRing(remaining, size) {
   ctx.addPath(track)
   ctx.strokePath()
   if (remaining > 0) {
-    ctx.setStrokeColor(new Color("#FFFFFF"))
-    const arc = new Path()
+    // 注意：Path 没有 addArc！弧线用很多小线段拼出来（addLines 真实存在）。
     const start = -Math.PI / 2
     const end = start + (Math.max(0, Math.min(100, remaining)) / 100) * Math.PI * 2
-    arc.addArc(center, radius, start, end, false)
+    const steps = Math.max(2, Math.ceil(Math.abs(end - start) / (Math.PI / 60)))
+    const pts = []
+    for (let i = 0; i <= steps; i++) {
+      const a = start + (end - start) * i / steps
+      pts.push(new Point(center.x + radius * Math.cos(a), center.y + radius * Math.sin(a)))
+    }
+    ctx.setStrokeColor(new Color("#FFFFFF"))
+    const arc = new Path()
+    arc.addLines(pts)
     ctx.addPath(arc)
     ctx.strokePath()
   }
