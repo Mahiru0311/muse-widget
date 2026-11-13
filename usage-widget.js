@@ -1,4 +1,12 @@
-// Muse 用量小组件 v13 — Scriptable
+// Muse 用量小组件 v14 — Scriptable
+// v14 改动：修 v13 的崩溃。v13 在横屏上只显示「暂时拉不到用量数据」
+// 不是数据拉不到（raw JSON 实测 200、0.7 秒就有数据），是我写错了：
+// Scriptable 的 Path 根本没有 addArc 这个方法（已查官方类型定义确认，
+// Path 只有 move/addLine/addRect/addEllipse/addRoundedRect/addCurve/
+// addQuadCurve/addLines/addRects/closeSubpath），圆环一画就抛错，
+// 整个小组件掉进 catch 分支。改法：圆环改用很多小线段拼弧线
+// （addLines 是真实存在的方法），画图再出错也不会拖垮整个小组件，
+// 拉不到网时先读本地缓存，实在没数据才显示报错。
 // v13 改动：横屏版（medium）重做，不再是小尺寸的加宽版。
 // 小尺寸保持 v11/v12 的样子不动；横屏版改成：顶部波浪 + Muse + 每周额度，
 // 中间左边一个蓝色圆环、右边大字剩余%，下面一条粗进度条，
@@ -33,16 +41,32 @@ const GREY = Color.dynamic(new Color("#8E8E93"), new Color("#98989D"))
 const TRACK = new Color("#C7C7CC")
 const BLUE = new Color("#0A84FF")
 
-async function loadData() {
-  const req = new Request(DATA_URL + "?t=" + Date.now())
-  req.headers = { "Cache-Control": "no-cache" }
-  req.timeoutInterval = 10
-  const data = await req.loadJSON()
+function readCache() {
   try {
     const fm = FileManager.local()
-    fm.writeString(fm.joinPath(fm.documentsDirectory(), "muse-widget-cache.json"), JSON.stringify(data))
-  } catch (e) {}
-  return data
+    const path = fm.joinPath(fm.documentsDirectory(), "muse-widget-cache.json")
+    if (!fm.fileExists(path)) return null
+    return JSON.parse(fm.readString(path))
+  } catch (e) {
+    return null
+  }
+}
+
+async function loadData() {
+  try {
+    const req = new Request(DATA_URL + "?t=" + Date.now())
+    req.headers = { "Cache-Control": "no-cache" }
+    req.timeoutInterval = 10
+    const data = await req.loadJSON()
+    try {
+      const fm = FileManager.local()
+      fm.writeString(fm.joinPath(fm.documentsDirectory(), "muse-widget-cache.json"), JSON.stringify(data))
+    } catch (e) {}
+    return data
+  } catch (e) {
+    // 联网失败就用本地缓存，别直接报错
+    return readCache()
+  }
 }
 
 async function loadIcon() {
@@ -90,6 +114,7 @@ function daysToReset(iso) {
 }
 
 // 横屏版用的圆环：蓝色是剩余，灰圈是底
+// 注意：Path 没有 addArc！弧线用很多小线段拼出来（addLines 真实存在）。
 function drawRing(remaining, size) {
   const ctx = new DrawContext()
   ctx.size = new Size(size, size)
@@ -104,11 +129,17 @@ function drawRing(remaining, size) {
   ctx.addPath(track)
   ctx.strokePath()
   if (remaining > 0) {
-    ctx.setStrokeColor(BLUE)
-    const arc = new Path()
     const start = -Math.PI / 2
     const end = start + (Math.max(0, Math.min(100, remaining)) / 100) * Math.PI * 2
-    arc.addArc(center, radius, start, end, false)
+    const steps = Math.max(2, Math.ceil(Math.abs(end - start) / (Math.PI / 60)))
+    const pts = []
+    for (let i = 0; i <= steps; i++) {
+      const a = start + (end - start) * i / steps
+      pts.push(new Point(center.x + radius * Math.cos(a), center.y + radius * Math.sin(a)))
+    }
+    ctx.setStrokeColor(BLUE)
+    const arc = new Path()
+    arc.addLines(pts)
     ctx.addPath(arc)
     ctx.strokePath()
   }
@@ -143,12 +174,15 @@ async function buildMedium(widget, data, usage, icon) {
   widget.addSpacer(8)
 
   // 中间：左边圆环，右边大字 + 已用/重置
+  // 画图万一再出问题也只跳过圆环，不拖垮整个小组件
   const main = widget.addStack()
   main.centerAlignContent()
   main.spacing = 14
-  const ringImg = drawRing(remaining, 72)
-  const ring = main.addImage(ringImg)
-  ring.imageSize = new Size(72, 72)
+  try {
+    const ringImg = drawRing(remaining, 72)
+    const ring = main.addImage(ringImg)
+    ring.imageSize = new Size(72, 72)
+  } catch (e) {}
   const col = main.addStack()
   col.layoutVertically()
   col.spacing = 2
@@ -239,33 +273,43 @@ async function buildSmall(widget, data, usage, icon) {
   resetText.textColor = SUB
 }
 
-async function createWidget() {
+function errorWidget() {
+  // 报错时用一张全新的卡片，别往画了一半的卡片上接着贴字
+  // （v13 的截图里「Muse」出现两次、下面空一大块，就是这么来的）
   const widget = new ListWidget()
   widget.backgroundColor = BG
   widget.url = "hatch://"
+  widget.setPadding(10, 14, 8, 14)
+  const title = widget.addText("Muse")
+  title.font = Font.boldSystemFont(15)
+  title.textColor = TEXT
+  widget.addSpacer(6)
+  const err = widget.addText("暂时拉不到用量数据，等下次刷新再看。")
+  err.font = Font.systemFont(12)
+  err.textColor = GREY
+  return widget
+}
+
+async function createWidget() {
   const isMedium = config.widgetFamily === "medium"
 
   try {
     const data = await loadData()
+    if (!data || !data.usage) throw new Error("no data")
     const usage = data.usage || {}
     const icon = await loadIcon()
+    const widget = new ListWidget()
+    widget.backgroundColor = BG
+    widget.url = "hatch://"
     if (isMedium) {
       await buildMedium(widget, data, usage, icon)
     } else {
       await buildSmall(widget, data, usage, icon)
     }
+    return widget
   } catch (e) {
-    widget.setPadding(10, 14, 8, 14)
-    const title = widget.addText("Muse")
-    title.font = Font.boldSystemFont(15)
-    title.textColor = TEXT
-    widget.addSpacer(6)
-    const err = widget.addText("暂时拉不到用量数据，等下次刷新再看。")
-    err.font = Font.systemFont(12)
-    err.textColor = GREY
+    return errorWidget()
   }
-
-  return widget
 }
 
 async function main() {
