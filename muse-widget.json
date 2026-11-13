@@ -1,15 +1,15 @@
 {
-  "version": 1,
-  "usage": {
-    "weekly_percent_used": 38,
-    "weekly_percent_remaining": 62,
-    "weekly_reset_at": "2026-11-18T09:27:00+08:00",
-    "additional_tokens_percent_used": 4,
-    "additional_tokens_left": "6.7B"
-  },
   "note": {
-    "title": "Muse",
-    "body": "本周已用 38%，下周三 9:27 重置。"
+    "body": "本周已用 39%，下周三 9:27 重置。",
+    "title": "Muse"
   },
-  "updated_at": "2026-11-14T00:30:34+08:00"
+  "updated_at": "2026-11-14T00:45:30+08:00",
+  "usage": {
+    "additional_tokens_left": "6.7B",
+    "additional_tokens_percent_used": 4,
+    "weekly_percent_remaining": 61,
+    "weekly_percent_used": 39,
+    "weekly_reset_at": "2026-11-18T09:27:00+08:00"
+  },
+  "version": 1
 }
