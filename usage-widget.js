@@ -1,4 +1,8 @@
-// Muse 用量小组件 v12 — Scriptable
+// Muse 用量小组件 v13 — Scriptable
+// v13 改动：横屏版（medium）重做，不再是小尺寸的加宽版。
+// 小尺寸保持 v11/v12 的样子不动；横屏版改成：顶部波浪 + Muse + 每周额度，
+// 中间左边一个蓝色圆环、右边大字剩余%，下面一条粗进度条，
+// 底部三格小数据：额外 tokens、距重置天数、每天可用额度。
 // v12 改动：每次拉到新数据都存一份到手机本地（muse-widget-cache.json），
 // 给锁屏小组件用：锁屏给脚本的时间很短，网络一慢就超时报错，
 // 锁屏版会先读这份缓存，网络通了再更新。桌面版显示本身不变。
@@ -80,74 +84,178 @@ function fmtReset(iso) {
     String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0")
 }
 
+function daysToReset(iso) {
+  if (!iso) return 0
+  return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000))
+}
+
+// 横屏版用的圆环：蓝色是剩余，灰圈是底
+function drawRing(remaining, size) {
+  const ctx = new DrawContext()
+  ctx.size = new Size(size, size)
+  ctx.opaque = false
+  ctx.respectScreenScale = true
+  const center = new Point(size / 2, size / 2)
+  const radius = size / 2 - 5
+  ctx.setLineWidth(7)
+  ctx.setStrokeColor(TRACK)
+  const track = new Path()
+  track.addEllipse(new Rect(5, 5, size - 10, size - 10))
+  ctx.addPath(track)
+  ctx.strokePath()
+  if (remaining > 0) {
+    ctx.setStrokeColor(BLUE)
+    const arc = new Path()
+    const start = -Math.PI / 2
+    const end = start + (Math.max(0, Math.min(100, remaining)) / 100) * Math.PI * 2
+    arc.addArc(center, radius, start, end, false)
+    ctx.addPath(arc)
+    ctx.strokePath()
+  }
+  return ctx.getImage()
+}
+
+// 横屏版（medium）：和小的完全不一样的排版
+async function buildMedium(widget, data, usage, icon) {
+  const remaining = usage.weekly_percent_remaining ?? 0
+  const used = usage.weekly_percent_used ?? 100
+  const days = daysToReset(usage.weekly_reset_at)
+  const perDay = days > 0 ? Math.round(remaining / days) : remaining
+  widget.setPadding(12, 16, 12, 16)
+
+  // 顶部：波浪 + Muse，右边是每周额度
+  const header = widget.addStack()
+  header.centerAlignContent()
+  header.spacing = 6
+  if (icon) {
+    const img = header.addImage(icon)
+    img.imageSize = new Size(34, 23)
+    img.cornerRadius = 0
+  }
+  const title = header.addText("Muse")
+  title.font = Font.boldSystemFont(15)
+  title.textColor = TEXT
+  header.addSpacer()
+  const quota = header.addText("每周额度")
+  quota.font = Font.systemFont(12)
+  quota.textColor = GREY
+
+  widget.addSpacer(8)
+
+  // 中间：左边圆环，右边大字 + 已用/重置
+  const main = widget.addStack()
+  main.centerAlignContent()
+  main.spacing = 14
+  const ringImg = drawRing(remaining, 72)
+  const ring = main.addImage(ringImg)
+  ring.imageSize = new Size(72, 72)
+  const col = main.addStack()
+  col.layoutVertically()
+  col.spacing = 2
+  const big = col.addText("剩余 " + remaining + "%")
+  big.font = Font.boldSystemFont(30)
+  big.textColor = TEXT
+  const usedLine = col.addText("已用 " + used + "% · 重置 " + fmtReset(usage.weekly_reset_at))
+  usedLine.font = Font.systemFont(12)
+  usedLine.textColor = SUB
+
+  widget.addSpacer(8)
+
+  // 粗进度条
+  const barImg = drawBar(remaining, 640)
+  const bar = widget.addImage(barImg)
+  bar.imageSize = new Size(320, 7)
+  bar.cornerRadius = 3.5
+
+  widget.addSpacer(10)
+
+  // 底部三格小数据
+  const stats = widget.addStack()
+  stats.spacing = 0
+  const cells = [
+    ["额外 tokens", "剩 " + (usage.additional_tokens_left ?? "—") + " · 已用 " + (usage.additional_tokens_percent_used ?? "—") + "%"],
+    ["距重置", days + " 天"],
+    ["每天可用", "约 " + perDay + "%"],
+  ]
+  for (let i = 0; i < cells.length; i++) {
+    if (i > 0) stats.addSpacer()
+    const cell = stats.addStack()
+    cell.layoutVertically()
+    cell.spacing = 1
+    const label = cell.addText(cells[i][0])
+    label.font = Font.systemFont(11)
+    label.textColor = GREY
+    const value = cell.addText(cells[i][1])
+    value.font = Font.boldSystemFont(13)
+    value.textColor = TEXT
+  }
+}
+
+// 小尺寸：v11/v12 的样子，一点不动
+async function buildSmall(widget, data, usage, icon) {
+  const remaining = usage.weekly_percent_remaining ?? 0
+  const used = usage.weekly_percent_used ?? 100
+  widget.setPadding(10, 14, 8, 14)
+
+  const header = widget.addStack()
+  header.topAlignContent()
+  header.spacing = 6
+  if (icon) {
+    const img = header.addImage(icon)
+    img.imageSize = new Size(34, 23)
+    img.cornerRadius = 0
+  }
+  const title = header.addText("Muse")
+  title.font = Font.boldSystemFont(15)
+  title.textColor = TEXT
+
+  widget.addSpacer(4)
+
+  const quotaLabel = widget.addText("每周额度")
+  quotaLabel.font = Font.systemFont(13)
+  quotaLabel.textColor = SUB
+
+  widget.addSpacer(2)
+
+  const big = widget.addText("剩余 " + remaining + "%")
+  big.font = Font.boldSystemFont(28)
+  big.textColor = TEXT
+
+  widget.addSpacer(6)
+
+  const barImg = drawBar(remaining, 260)
+  const bar = widget.addImage(barImg)
+  bar.imageSize = new Size(130, 7)
+  bar.cornerRadius = 3.5
+
+  widget.addSpacer(12)
+
+  const usedText = widget.addText("已用 " + used + "%")
+  usedText.font = Font.systemFont(12)
+  usedText.textColor = SUB
+  widget.addSpacer(2)
+  const resetText = widget.addText("重置 " + fmtReset(usage.weekly_reset_at))
+  resetText.font = Font.systemFont(12)
+  resetText.textColor = SUB
+}
+
 async function createWidget() {
   const widget = new ListWidget()
   widget.backgroundColor = BG
-  // 顶部 10，底部 8：底部两行往下移 4pt
-  widget.setPadding(10, 14, 8, 14)
   widget.url = "hatch://"
   const isMedium = config.widgetFamily === "medium"
 
   try {
     const data = await loadData()
     const usage = data.usage || {}
-    const remaining = usage.weekly_percent_remaining ?? 0
-    const used = usage.weekly_percent_used ?? 100
-
-    // 顶部：蓝色波浪 + Muse（v11 换回来了）
-    const header = widget.addStack()
-    header.topAlignContent()
-    header.spacing = 6
     const icon = await loadIcon()
-    if (icon) {
-      const img = header.addImage(icon)
-      img.imageSize = new Size(34, 23)
-      img.cornerRadius = 0
-    }
-    const title = header.addText("Muse")
-    title.font = Font.boldSystemFont(15)
-    title.textColor = TEXT
-
-    widget.addSpacer(4)
-
-    // 小字：每周额度
-    const quotaLabel = widget.addText("每周额度")
-    quotaLabel.font = Font.systemFont(13)
-    quotaLabel.textColor = SUB
-
-    widget.addSpacer(2)
-
-    // 大数字：剩余 XX%（XX 是真实剩余百分比）
-    const big = widget.addText("剩余 " + remaining + "%")
-    big.font = Font.boldSystemFont(28)
-    big.textColor = TEXT
-
-    widget.addSpacer(6)
-
-    // 进度条
-    const barImg = drawBar(remaining, isMedium ? 640 : 260)
-    const bar = widget.addImage(barImg)
-    bar.imageSize = new Size(isMedium ? 320 : 130, 7)
-    bar.cornerRadius = 3.5
-
-    // 中尺寸多显示一行
     if (isMedium) {
-      widget.addSpacer(6)
-      const extra = widget.addText("额外 tokens 已用 " + (usage.additional_tokens_percent_used ?? "—") + "% · 剩 " + (usage.additional_tokens_left ?? "—"))
-      extra.font = Font.systemFont(12)
-      extra.textColor = GREY
+      await buildMedium(widget, data, usage, icon)
+    } else {
+      await buildSmall(widget, data, usage, icon)
     }
-
-    widget.addSpacer(12)
-
-    const usedText = widget.addText("已用 " + used + "%")
-    usedText.font = Font.systemFont(12)
-    usedText.textColor = SUB
-    widget.addSpacer(2)
-    const resetText = widget.addText("重置 " + fmtReset(usage.weekly_reset_at))
-    resetText.font = Font.systemFont(12)
-    resetText.textColor = SUB
   } catch (e) {
+    widget.setPadding(10, 14, 8, 14)
     const title = widget.addText("Muse")
     title.font = Font.boldSystemFont(15)
     title.textColor = TEXT
