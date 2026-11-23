@@ -1,14 +1,14 @@
 {
   "note": {
-    "body": "本周已用 39%，11 月 25 日 9:27 重置。",
+    "body": "本周已用 40%，11 月 25 日 9:27 重置。",
     "title": "Muse"
   },
-  "updated_at": "2026-11-23T11:23:17+08:00",
+  "updated_at": "2026-11-23T11:38:27+08:00",
   "usage": {
     "additional_tokens_left": "6.6B",
     "additional_tokens_percent_used": 5,
-    "weekly_percent_remaining": 61,
-    "weekly_percent_used": 39,
+    "weekly_percent_remaining": 60,
+    "weekly_percent_used": 40,
     "weekly_reset_at": "2026-11-25T09:27:00+08:00"
   },
   "version": 1
